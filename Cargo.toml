@@ -1,0 +1,6 @@
+[package]
+name = "md2"
+version = "0.1.0"
+authors = ["Jesse Kempf <jessekempf@gmail.com>"]
+
+[dependencies]
