@@ -99,35 +99,56 @@ fn update_digest(block: &[u8], digest_state: &mut [u8; 48]) {
     }
 }
 
-fn hex_string(data: &[u8]) -> String {
+pub fn hex_string(data: &[u8]) -> String {
     let mut rendered = String::with_capacity(2 * data.len());
 
     for word in data {
-        rendered.push_str(&format!("{:x}", word));
+        rendered.push_str(&format!("{:02x}", word));
     }
 
     rendered
 }
 
-fn md2file(filename: &str) -> io::Result<[u8; 16]> {
+pub fn md2file(filename: &str) -> io::Result<[u8; 16]> {
     let mut file = try!(File::open(filename));
     let mut data = Vec::new();
 
     try!(file.read_to_end(&mut data));
 
-    Ok(run_checksum(&data))
+    Ok(run_digest(&data))
+}
+
+pub fn md2str(string: &str) -> [u8; 16] {
+    run_digest(&vec_from_str(string))
+}
+
+fn vec_from_str(string: &str) -> Vec<u8> {
+    let mut vec = Vec::with_capacity(string.len());
+    vec.extend_from_slice(string.as_bytes());
+    vec
 }
 
 #[cfg(test)]
 mod tests {
-    use super::run_checksum;
-    use super::hex_string;
+    use md2::md2str;
+    use md2::hex_string;
+
+    fn md2hex(string: &str) -> String {
+        hex_string(&md2str(string))
+    }
 
     #[test]
-    fn it_works() {
-        let emptyvec = vec![];
-        let emptyMD2 = run_checksum(&emptyvec);
+    fn it_complies_with_rfc1319_test_suite() {
+        assert!(md2hex("") == "8350e5a3e24c153df2275c9f80692773");
+        assert!(md2hex("a") == "32ec01ec4a6dac72c0ab96fb34c0b5d1");
+        assert!(md2hex("abc") == "da853b0d3f88d99b30283a69e6ded6bb");
+        assert!(md2hex("message digest") == "ab4f496bfb2a530b219ff33031fe06b0");
+        assert!(md2hex("abcdefghijklmnopqrstuvwxyz") == "4e8ddff3650292ab5a4108c3aa47940b");
 
-        assert!(hex_string(&emptyMD2) == "8350e5a3e24c153df2275c9f80692773");
+        assert!(md2hex("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789") ==
+                "da33def2a42df13975352846c30338cd");
+
+        assert!(md2hex("12345678901234567890123456789012345678901234567890123456789012345678901234567890") ==
+                "d5976f79d83d3a0dc9806c3c66f3efd8");
     }
 }
